@@ -1,0 +1,20 @@
+# Python environment
+.venv/
+venv/
+ENV/
+env/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
+# App runtime data
+.env
+.env.*
+!.env.example
+logs/
+*.log
+*.db
+*.sqlite3
+*.sqlite
+
+data/
