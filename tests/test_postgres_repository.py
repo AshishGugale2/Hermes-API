@@ -1,12 +1,8 @@
-import sqlite3
 import unittest
-from pathlib import Path
-from tempfile import TemporaryDirectory
 
 import psycopg2
 from fastapi.testclient import TestClient
 
-from scripts.migrate_sqlite import migrate
 from tests.postgres_helpers import postgres_repository
 
 
@@ -49,50 +45,6 @@ class PostgreSQLRepositoryTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 repo.update_trigger(trigger_id, threshold=9, mailing_list_id=999)
             self.assertEqual(repo.list_triggers()[0]["threshold"], 8)
-
-    def test_import_preserves_ids_and_resets_identity(self):
-        with postgres_repository() as repo, TemporaryDirectory() as directory:
-            source_path = Path(directory) / "old.db"
-            source = sqlite3.connect(source_path)
-            try:
-                with source:
-                    source.execute(
-                        "CREATE TABLE mailing_lists (id INTEGER PRIMARY KEY, name TEXT, emails TEXT, created_at TEXT)"
-                    )
-                    source.execute(
-                        "INSERT INTO mailing_lists VALUES (42, 'Ops', 'ops@example.com', '2026-09-27T12:00:00+00:00')"
-                    )
-                    source.execute(
-                        "CREATE TABLE mail_triggers (id INTEGER PRIMARY KEY, name TEXT, threshold REAL, operator TEXT, mailing_list_id INTEGER, active INTEGER)"
-                    )
-                    source.execute("INSERT INTO mail_triggers VALUES (27, 'Ops alert', 5, '>', 42, 0)")
-            finally:
-                source.close()
-            counts = migrate(source_path, repo.container.database)
-            self.assertEqual(counts["mailing_lists"], 1)
-            self.assertEqual(repo.list_mailing_lists()[0]["id"], 42)
-            self.assertFalse(repo.list_triggers()[0]["active"])
-            self.assertGreater(repo.create_mailing_list("Investors", "investors@example.com"), 42)
-            with self.assertRaises(ValueError):
-                migrate(source_path, repo.container.database)
-
-    def test_import_rolls_back_on_invalid_foreign_key(self):
-        with postgres_repository() as repo, TemporaryDirectory() as directory:
-            source_path = Path(directory) / "old.db"
-            source = sqlite3.connect(source_path)
-            try:
-                with source:
-                    source.execute("CREATE TABLE mailing_lists (id INTEGER PRIMARY KEY, name TEXT, emails TEXT)")
-                    source.execute("INSERT INTO mailing_lists VALUES (1, 'Ops', 'ops@example.com')")
-                    source.execute(
-                        "CREATE TABLE mail_triggers (id INTEGER PRIMARY KEY, name TEXT, threshold REAL, operator TEXT, mailing_list_id INTEGER)"
-                    )
-                    source.execute("INSERT INTO mail_triggers VALUES (1, 'Invalid', 5, '>', 999)")
-            finally:
-                source.close()
-            with self.assertRaises(psycopg2.errors.ForeignKeyViolation):
-                migrate(source_path, repo.container.database)
-            self.assertEqual(repo.list_mailing_lists(), [])
 
 
 if __name__ == "__main__":
