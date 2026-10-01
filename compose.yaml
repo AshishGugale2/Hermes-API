@@ -1,0 +1,66 @@
+name: hermes
+services:
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-ipo}
+      POSTGRES_USER: ${POSTGRES_USER:-ipo}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$$POSTGRES_USER\" -d \"$$POSTGRES_DB\""]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    restart: unless-stopped
+  migrate:
+    image: liquibase/liquibase:4.33.0
+    volumes:
+      - ./migrations:/liquibase/changelog:ro
+    environment:
+      LIQUIBASE_COMMAND_URL: jdbc:postgresql://db:5432/${POSTGRES_DB:-ipo}
+      LIQUIBASE_COMMAND_USERNAME: ${POSTGRES_USER:-ipo}
+      LIQUIBASE_COMMAND_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+      LIQUIBASE_COMMAND_CHANGELOG_FILE: db.changelog.xml
+      LIQUIBASE_SEARCH_PATH: /liquibase/changelog
+      LIQUIBASE_ANALYTICS_ENABLED: "false"
+    command: ["update"]
+    depends_on:
+      db:
+        condition: service_healthy
+  api:
+    build: .
+    environment: &application_environment
+      DATABASE_URL: ${CONTAINER_DATABASE_URL:?Set CONTAINER_DATABASE_URL with the db hostname and URL-encoded credentials}
+      IPO_CACHE_MINUTES: ${IPO_CACHE_MINUTES:-15}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:5173}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      DB_POOL_MAX: ${DB_POOL_MAX:-10}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USE_TLS: ${SMTP_USE_TLS:-true}
+      SMTP_USERNAME: ${SMTP_USERNAME:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      SMTP_FROM: ${SMTP_FROM:-noreply@ipo-monitor.local}
+    ports:
+      - "${API_BIND_ADDRESS:-127.0.0.1}:${API_PORT:-8000}:8000"
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/health/ready', timeout=5)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+  scheduler:
+    build: .
+    environment: *application_environment
+    command: ["python", "-m", "app.jobs.scheduler"]
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    restart: unless-stopped
+volumes:
+  postgres_data:

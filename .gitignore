@@ -6,6 +6,10 @@ env/
 __pycache__/
 *.py[cod]
 .pytest_cache/
+.ruff_cache/
+build/
+dist/
+*.egg-info/
 
 # App runtime data
 .env
@@ -18,3 +22,5 @@ logs/
 *.sqlite
 
 data/
+key
+key.pub

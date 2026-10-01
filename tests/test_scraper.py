@@ -1,6 +1,5 @@
 import unittest
 from datetime import date
-from unittest.mock import Mock
 
 from app.scraper import _record_from_api_row, parse_subscriptions
 
@@ -43,24 +42,22 @@ class SubscriptionParserTests(unittest.TestCase):
         self.assertEqual(record["close_date"], date(2026, 9, 29))
 
     def test_persists_closing_date_in_latest_snapshot(self):
-        from pathlib import Path
-        from tempfile import TemporaryDirectory
+        from tests.postgres_helpers import postgres_repository
 
-        from app.repository import SnapshotRepository
-
-        with TemporaryDirectory() as temp_dir:
-            repo = SnapshotRepository(Path(temp_dir) / "ipo-monitor.db")
+        with postgres_repository() as repo:
             repo.save_snapshot(
                 "https://example.com",
-                [{
-                    "id": "ipo-1",
-                    "company": "Example IPO",
-                    "qib_subscription": 1.5,
-                    "nii_subscription": 0.6,
-                    "retail_subscription": 0.8,
-                    "overall_subscription": 1.2,
-                    "closing_date": "2026-09-29",
-                }],
+                [
+                    {
+                        "id": "ipo-1",
+                        "company": "Example IPO",
+                        "qib_subscription": 1.5,
+                        "nii_subscription": 0.6,
+                        "retail_subscription": 0.8,
+                        "overall_subscription": 1.2,
+                        "closing_date": "2026-09-29",
+                    }
+                ],
             )
 
             snapshot = repo.latest_snapshot()

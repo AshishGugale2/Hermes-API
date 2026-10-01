@@ -1,0 +1,11 @@
+**
+!pyproject.toml
+!requirements.txt
+!app/
+!app/**
+!scripts/
+!scripts/**
+!migrations/
+!migrations/**
+**/__pycache__/
+**/*.pyc

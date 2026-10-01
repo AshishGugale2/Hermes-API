@@ -1,14 +1,11 @@
 import unittest
-from pathlib import Path
-from tempfile import TemporaryDirectory
 
-from app.repository import SnapshotRepository
+from tests.postgres_helpers import postgres_repository
 
 
 class MailAdminCrudTests(unittest.TestCase):
     def test_can_update_and_delete_mailing_lists_and_triggers(self):
-        with TemporaryDirectory() as temp_dir:
-            repo = SnapshotRepository(Path(temp_dir) / "ipo_monitor.db")
+        with postgres_repository() as repo:
             list_id = repo.create_mailing_list("Ops", "ops@demo.com")
             trigger_id = repo.create_trigger("Ops alert", 5.0, ">", list_id)
 

@@ -1,0 +1,3 @@
+DROP INDEX idx_trigger_events_sent_at;
+DROP INDEX idx_mail_triggers_mailing_list;
+DROP INDEX idx_ipo_subscriptions_snapshot;

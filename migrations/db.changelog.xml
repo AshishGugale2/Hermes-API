@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.33.xsd">
+    <changeSet id="001-initial-schema" author="hermes" dbms="postgresql">
+        <sqlFile path="sql/001_initial_schema.sql" relativeToChangelogFile="true" splitStatements="true"/>
+        <rollback>
+            <sqlFile path="sql/001_initial_schema.down.sql" relativeToChangelogFile="true" splitStatements="true"/>
+        </rollback>
+    </changeSet>
+    <changeSet id="002-query-indexes" author="hermes" dbms="postgresql">
+        <sqlFile path="sql/002_query_indexes.sql" relativeToChangelogFile="true" splitStatements="true"/>
+        <rollback>
+            <sqlFile path="sql/002_query_indexes.down.sql" relativeToChangelogFile="true" splitStatements="true"/>
+        </rollback>
+    </changeSet>
+</databaseChangeLog>
